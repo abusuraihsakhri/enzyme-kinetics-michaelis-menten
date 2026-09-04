@@ -28,6 +28,14 @@ from .engine import (
     full_kinetic_analysis,
 )
 
+# Import agents module components (optional, for audit/chat commands)
+try:
+    from agents.supervisor import SystemSupervisor
+    from agents.base import AuditLogger
+    AGENTS_AVAILABLE = True
+except ImportError:
+    AGENTS_AVAILABLE = False
+
 
 def _load_data(filepath: str):
     """Load substrate concentrations and velocities from CSV or JSON."""
@@ -214,6 +222,75 @@ def cmd_substrate_inhibition(args):
     return 0
 
 
+def cmd_audit(args):
+    """Run a supervisor audit on a task."""
+    if not AGENTS_AVAILABLE:
+        print("Error: agents package not available", file=sys.stderr)
+        return 1
+
+    from agents.models import SystemTaskPayload
+    supervisor = SystemSupervisor(model_provider="mock")
+    payload = SystemTaskPayload(
+        task_id=args.task_id,
+        target_identifier=args.target_identifier,
+        primary_metric=args.primary_metric,
+        secondary_metric=args.secondary_metric,
+        status_descriptor=args.status_descriptor,
+        is_critical_flag=args.is_critical_flag,
+    )
+    dossier = supervisor.process_task(payload)
+
+    if args.json:
+        print(json.dumps(dossier.to_dict(), indent=2, default=str))
+    else:
+        print(f"Audit Dossier: {dossier.dossier_id}")
+        print(f"  Task ID:          {dossier.task_id}")
+        print(f"  Overall Urgency:  {dossier.overall_urgency.value}")
+        print(f"  Integrity Status: {dossier.integrity_status.value}")
+        print(f"  Total Alerts:     {dossier.total_alerts}")
+        print(f"  Audit Hash:       {dossier.audit_hash}")
+        if dossier.alerts:
+            print("  Alerts:")
+            for alert in dossier.alerts:
+                print(f"    - [{alert.urgency.value}] {alert.summary}")
+    return 0
+
+
+def cmd_chat(args):
+    """Query the supervisory chat assistant."""
+    if not AGENTS_AVAILABLE:
+        print("Error: agents package not available", file=sys.stderr)
+        return 1
+
+    supervisor = SystemSupervisor(model_provider="mock")
+    query = " ".join(args.query)
+    response = supervisor.query_supervisory_chat(query)
+
+    if args.json:
+        print(json.dumps({"query": query, "response": response}, indent=2))
+    else:
+        print(f"Query: {query}")
+        print(f"Response: {response}")
+    return 0
+
+
+def cmd_verify_audit(args):
+    """Verify the HMAC audit trail integrity."""
+    if not AGENTS_AVAILABLE:
+        print("Error: agents package not available", file=sys.stderr)
+        return 1
+
+    verified = AuditLogger.verify_integrity()
+    trail = AuditLogger.get_trail()
+
+    if args.json:
+        print(json.dumps({"verified": verified, "blocks": len(trail)}, indent=2))
+    else:
+        print(f"Audit Trail Verification: {'PASSED' if verified else 'FAILED'}")
+        print(f"  Total Blocks: {len(trail)}")
+    return 0 if verified else 1
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog='enzyme-kinetics-michaelis-menten',
@@ -257,7 +334,26 @@ def main(argv=None):
     p_sub.add_argument('--km', type=float, required=True)
     p_sub.add_argument('--ki-substrate', type=float, required=True)
     p_sub.add_argument('--json', action='store_true', help='JSON output')
-    
+
+    # Audit
+    p_audit = subparsers.add_parser('audit', help='Run supervisor audit on a task')
+    p_audit.add_argument('--task-id', default='TASK-CLI-01', help='Task identifier')
+    p_audit.add_argument('--target-identifier', default='TARGET-CLI-01', help='Target identifier')
+    p_audit.add_argument('--primary-metric', type=float, default=10.0, help='Primary metric value')
+    p_audit.add_argument('--secondary-metric', type=float, default=5.0, help='Secondary metric value')
+    p_audit.add_argument('--status-descriptor', default='NOMINAL', help='Status descriptor')
+    p_audit.add_argument('--is-critical-flag', action='store_true', help='Critical flag')
+    p_audit.add_argument('--json', action='store_true', help='JSON output')
+
+    # Chat
+    p_chat = subparsers.add_parser('chat', help='Query the supervisory chat assistant')
+    p_chat.add_argument('query', nargs='+', help='Query text')
+    p_chat.add_argument('--json', action='store_true', help='JSON output')
+
+    # Verify audit
+    p_verify = subparsers.add_parser('verify-audit', help='Verify HMAC audit trail integrity')
+    p_verify.add_argument('--json', action='store_true', help='JSON output')
+
     args = parser.parse_args(argv)
     
     commands = {
@@ -266,6 +362,9 @@ def main(argv=None):
         'inhibition': cmd_inhibition,
         'ic50': cmd_ic50,
         'substrate-inhibition': cmd_substrate_inhibition,
+        'audit': cmd_audit,
+        'chat': cmd_chat,
+        'verify-audit': cmd_verify_audit,
     }
     
     return commands[args.command](args)
