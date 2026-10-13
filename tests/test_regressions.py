@@ -4,7 +4,7 @@ import pytest
 
 from enzyme_kinetics.engine import (
     fit_michaelis_menten, lineweaver_burk, michaelis_menten,
-    competitive_inhibition, ic50_to_ki,
+    competitive_inhibition, ic50_to_ki, calculate_ic50,
 )
 from agents.base import AuditTrail
 
@@ -54,6 +54,11 @@ def test_reject_nonphysical_rate_parameters(s, vmax, km):
 def test_reject_zero_inhibitor_constant():
     with pytest.raises(ValueError):
         competitive_inhibition(1, 10, 1, 1, 0)
+
+
+def test_reject_ic50_without_substrate():
+    with pytest.raises(ValueError):
+        calculate_ic50(100, 10, 0, 2)
 
 
 def test_reject_inverse_ic50_without_substrate():
