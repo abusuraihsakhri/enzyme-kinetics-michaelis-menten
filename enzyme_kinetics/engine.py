@@ -358,6 +358,8 @@ def calculate_ic50(vmax: float, km: float, s: float,
     """
     _validate_model(s, vmax, km)
     _validate_inhibitor(0.0, ki)
+    if s == 0:
+        raise ValueError("IC50 is undefined when substrate concentration is zero")
     if inhibition_type == 'competitive':
         return ki * (1.0 + s / km)
     elif inhibition_type == 'uncompetitive':
