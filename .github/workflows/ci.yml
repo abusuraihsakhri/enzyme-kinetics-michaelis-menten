@@ -1,40 +1,50 @@
-name: Enzyme Kinetics Michaelis Menten CI/CD & Security Verification
+name: Enzyme kinetics CI
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master]
   pull_request:
-    branches: [ master, main ]
+    branches: [master]
+
+permissions:
+  contents: read
 
 jobs:
-  test-and-audit:
+  python:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install and check package
+        run: |
+          python -m pip install -e ".[api,dev]"
+          python -m compileall -q agents enzyme_kinetics cli.py enrichment.py simulator.py
+          python -m pip check
+      - name: Run Python tests
+        run: python -m pytest -q
+      - name: CLI smoke tests
+        run: |
+          enzyme-kinetics-michaelis-menten fit -i sample_kinetics.csv --json
+          enzyme-kinetics-michaelis-menten inhibition --vmax 100 --km 10 --type competitive --inhibitor 5 --ki 2 --json
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install fastapi uvicorn pydantic pytest
-
-    - name: Run Pytest Suite
-      run: |
-        pytest -v
-
-    - name: Security SAST & Zero-PHI Audit
-      run: |
-        python -c "
-        from agents.base import PHIGuard, AuditLogger
-        import pytest
-        assert AuditLogger.verify_integrity() is True
-        print('Security & Zero-PHI Audit Passed!')
-        "
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check browser modules
+        run: |
+          node --check web/kinetics.mjs
+          node --test web/kinetics.test.mjs
+      - name: Static entry smoke test
+        run: |
+          test -f web/index.html
+          grep -q "from './kinetics.mjs'" web/index.html
