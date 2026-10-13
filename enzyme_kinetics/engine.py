@@ -54,6 +54,31 @@ class KineticFitResult:
     hanes_woolf: Optional[Dict[str, Any]] = None
 
 
+
+def _validate_dataset(concentrations: List[float], velocities: List[float],
+                      minimum: int = 2) -> None:
+    if len(concentrations) != len(velocities) or len(concentrations) < minimum:
+        raise ValueError(f"Need at least {minimum} paired concentration/velocity observations")
+    if any(not math.isfinite(x) or x < 0 for x in concentrations):
+        raise ValueError("Concentrations must be finite and nonnegative")
+    if any(not math.isfinite(v) or v < 0 for v in velocities):
+        raise ValueError("Velocities must be finite and nonnegative")
+
+
+def _validate_model(s: float, vmax: float, km: float) -> None:
+    if any(not math.isfinite(x) for x in (s, vmax, km)):
+        raise ValueError("Model parameters must be finite")
+    if s < 0 or vmax < 0 or km <= 0:
+        raise ValueError("Require [S] >= 0, Vmax >= 0 and Km > 0")
+
+
+def _validate_inhibitor(inhibitor: float, ki: float) -> None:
+    if not math.isfinite(inhibitor) or not math.isfinite(ki):
+        raise ValueError("Inhibitor concentration and Ki must be finite")
+    if inhibitor < 0 or ki <= 0:
+        raise ValueError("Require inhibitor >= 0 and Ki > 0")
+
+
 # --- Core Michaelis-Menten ---
 
 def michaelis_menten(s: float, vmax: float, km: float) -> float:
@@ -66,8 +91,7 @@ def michaelis_menten(s: float, vmax: float, km: float) -> float:
     Returns:
         Reaction velocity
     """
-    if km + s == 0:
-        return 0.0
+    _validate_model(s, vmax, km)
     return vmax * s / (km + s)
 
 
@@ -87,6 +111,7 @@ def lineweaver_burk(concentrations: List[float], velocities: List[float]) -> Dic
     
     Returns dict with Vmax, Km, slope, intercept, r_squared.
     """
+    _validate_dataset(concentrations, velocities)
     inv_s = []
     inv_v = []
     for s, v in zip(concentrations, velocities):
@@ -125,6 +150,7 @@ def eadie_hofstee(concentrations: List[float], velocities: List[float]) -> Dict[
     
     Returns dict with Vmax, Km, slope, intercept, r_squared.
     """
+    _validate_dataset(concentrations, velocities)
     v_over_s = []
     v_vals = []
     for s, v in zip(concentrations, velocities):
@@ -162,6 +188,7 @@ def hanes_woolf(concentrations: List[float], velocities: List[float]) -> Dict[st
     
     Returns dict with Vmax, Km, slope, intercept, r_squared.
     """
+    _validate_dataset(concentrations, velocities)
     s_vals = []
     s_over_v = []
     for s, v in zip(concentrations, velocities):
@@ -203,8 +230,8 @@ def calculate_kcat(vmax: float, enzyme_conc: float) -> float:
     Returns:
         kcat (turnover number, 1/time)
     """
-    if enzyme_conc <= 0:
-        raise ValueError("Enzyme concentration must be positive")
+    if not math.isfinite(vmax) or vmax < 0 or not math.isfinite(enzyme_conc) or enzyme_conc <= 0:
+        raise ValueError("Vmax must be finite and nonnegative; enzyme concentration finite and positive")
     return vmax / enzyme_conc
 
 
@@ -217,8 +244,8 @@ def calculate_catalytic_efficiency(kcat: float, km: float) -> float:
     Returns:
         Catalytic efficiency (1/(concentration*time))
     """
-    if km <= 0:
-        raise ValueError("Km must be positive")
+    if not math.isfinite(kcat) or kcat < 0 or not math.isfinite(km) or km <= 0:
+        raise ValueError("kcat must be finite and nonnegative; Km finite and positive")
     return kcat / km
 
 
@@ -232,6 +259,8 @@ def competitive_inhibition(s: float, vmax: float, km: float,
     Inhibitor competes with substrate for active site.
     Increases apparent Km, Vmax unchanged.
     """
+    _validate_model(s, vmax, km)
+    _validate_inhibitor(inhibitor, ki)
     alpha = 1.0 + inhibitor / ki
     return vmax * s / (alpha * km + s)
 
@@ -244,6 +273,8 @@ def uncompetitive_inhibition(s: float, vmax: float, km: float,
     Inhibitor binds only to ES complex.
     Decreases both apparent Km and Vmax.
     """
+    _validate_model(s, vmax, km)
+    _validate_inhibitor(inhibitor, ki)
     alpha_prime = 1.0 + inhibitor / ki
     return vmax * s / (km + alpha_prime * s)
 
@@ -257,6 +288,10 @@ def noncompetitive_inhibition(s: float, vmax: float, km: float,
     Pure non-competitive: Ki = Ki' (alpha = alpha').
     Decreases Vmax, Km unchanged.
     """
+    _validate_model(s, vmax, km)
+    _validate_inhibitor(inhibitor, ki)
+    if ki_prime is not None:
+        _validate_inhibitor(inhibitor, ki_prime)
     alpha = 1.0 + inhibitor / ki
     alpha_prime = 1.0 + inhibitor / (ki_prime if ki_prime else ki)
     return vmax * s / (alpha * km + alpha_prime * s)
@@ -270,6 +305,9 @@ def mixed_inhibition(s: float, vmax: float, km: float,
     Inhibitor binds both E and ES with different affinities.
     Decreases Vmax and changes apparent Km.
     """
+    _validate_model(s, vmax, km)
+    _validate_inhibitor(inhibitor, ki)
+    _validate_inhibitor(inhibitor, ki_prime)
     alpha = 1.0 + inhibitor / ki
     alpha_prime = 1.0 + inhibitor / ki_prime
     return vmax * s / (alpha * km + alpha_prime * s)
@@ -281,6 +319,8 @@ def substrate_inhibition(s: float, vmax: float, km: float, ki_substrate: float) 
     At high substrate concentrations, velocity decreases.
     Optimal [S] = sqrt(Km * Ki)
     """
+    _validate_model(s, vmax, km)
+    _validate_inhibitor(s, ki_substrate)
     denominator = km + s * (1.0 + s / ki_substrate)
     if denominator == 0:
         return 0.0
@@ -291,6 +331,8 @@ def substrate_inhibition_optimal_conc(km: float, ki_substrate: float) -> float:
     """Calculate optimal substrate concentration for substrate inhibition model.
     S_opt = sqrt(Km * Ki)
     """
+    _validate_inhibitor(0.0, km)
+    _validate_inhibitor(0.0, ki_substrate)
     return math.sqrt(km * ki_substrate)
 
 
@@ -314,6 +356,8 @@ def calculate_ic50(vmax: float, km: float, s: float,
     Returns:
         IC50 value
     """
+    _validate_model(s, vmax, km)
+    _validate_inhibitor(0.0, ki)
     if inhibition_type == 'competitive':
         return ki * (1.0 + s / km)
     elif inhibition_type == 'uncompetitive':
@@ -338,6 +382,8 @@ def ic50_to_ki(ic50: float, s: float, km: float,
     Returns:
         Ki value
     """
+    if not all(math.isfinite(x) for x in (ic50, s, km)) or ic50 < 0 or s <= 0 or km <= 0:
+        raise ValueError("Require finite IC50 >= 0, substrate > 0 and Km > 0")
     if inhibition_type == 'competitive':
         return ic50 / (1.0 + s / km)
     elif inhibition_type == 'uncompetitive':
@@ -354,17 +400,53 @@ def ic50_to_ki(ic50: float, s: float, km: float,
 
 def fit_michaelis_menten(concentrations: List[float],
                           velocities: List[float]) -> KineticParameters:
-    """Estimate Vmax and Km from experimental data using Lineweaver-Burk linearization.
-    
-    For production use, non-linear regression (Levenberg-Marquardt) would be preferred,
-    but this provides a reasonable first estimate.
+    """Fit Vmax and Km by unweighted nonlinear least squares on measured velocities.
+
+    A one-dimensional bounded search over log(Km) is used, with the optimal
+    Vmax calculated analytically for each candidate Km. This avoids an
+    optional SciPy dependency and the reciprocal-error bias of Lineweaver-Burk.
+    R-squared is evaluated in velocity space (not reciprocal space).
     """
-    lb = lineweaver_burk(concentrations, velocities)
-    return KineticParameters(
-        vmax=lb['vmax'],
-        km=lb['km'],
-        r_squared=lb['r_squared'],
-    )
+    _validate_dataset(concentrations, velocities, minimum=3)
+    positives = [s for s in concentrations if s > 0]
+    if len(set(positives)) < 3 or max(velocities) <= 0:
+        raise ValueError("Need three distinct positive substrate concentrations and nonzero rates")
+
+    low = math.log(min(positives)) - math.log(1e6)
+    high = math.log(max(positives)) + math.log(1e6)
+
+    def objective(log_km: float) -> Tuple[float, float]:
+        km = math.exp(log_km)
+        fractions = [s / (km + s) for s in concentrations]
+        denom = sum(f * f for f in fractions)
+        vmax = max(0.0, sum(f * v for f, v in zip(fractions, velocities)) / denom)
+        sse = sum((v - vmax * f) ** 2 for v, f in zip(velocities, fractions))
+        return sse, vmax
+
+    count = 240
+    grid = [low + (high - low) * i / count for i in range(count + 1)]
+    losses = [objective(x)[0] for x in grid]
+    best = min(range(len(grid)), key=lambda i: losses[i])
+    if best in (0, count):
+        raise ValueError("Km could not be identified from these measurements")
+
+    a, b = grid[best - 1], grid[best + 1]
+    ratio = (math.sqrt(5.0) - 1.0) / 2.0
+    c, d = b - ratio * (b - a), a + ratio * (b - a)
+    for _ in range(120):
+        if objective(c)[0] <= objective(d)[0]:
+            b, d = d, c
+            c = b - ratio * (b - a)
+        else:
+            a, c = c, d
+            d = a + ratio * (b - a)
+
+    log_km = (a + b) / 2.0
+    sse, vmax = objective(log_km)
+    mean_v = sum(velocities) / len(velocities)
+    ss_tot = sum((v - mean_v) ** 2 for v in velocities)
+    r_squared = 1.0 - sse / ss_tot if ss_tot > 0 else (1.0 if sse == 0 else 0.0)
+    return KineticParameters(vmax=vmax, km=math.exp(log_km), r_squared=r_squared)
 
 
 def fit_with_kcat(concentrations: List[float], velocities: List[float],
