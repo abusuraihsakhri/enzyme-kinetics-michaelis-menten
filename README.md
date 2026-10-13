@@ -1,5 +1,7 @@
 # Enzyme Kinetics — Michaelis–Menten
 
+### [Open the Live Application →](https://abusuraihsakhri.github.io/enzyme-kinetics-michaelis-menten/)
+
 A Python enzyme-kinetics library and CLI with a dependency-free browser workbench for initial-rate analysis.
 
 ## Browser workbench
@@ -15,7 +17,7 @@ python -m http.server 8001 --directory web
 # Open http://localhost:8001
 ```
 
-A [GitHub Pages deployment workflow](.github/workflows/pages.yml) publishes `web/` from `master`. The repository must have **Settings → Pages → Source: GitHub Actions** enabled. The live link should only be published here once deployment and the application have been verified.
+The [GitHub Pages deployment workflow](.github/workflows/pages.yml) publishes `web/` from `master`. Deployment status and build logs are available under repository Actions.
 
 ## Python installation and CLI
 
