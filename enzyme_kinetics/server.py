@@ -1,57 +1,10 @@
-"""
-FastAPI REST API Server for EnzymeKinetics Sentinel: Michaelis-Menten, Lineweaver-Burk & Ki Inhibition Agent.
-"""
-from typing import Dict, Any
-from .models import FrontierPayload
-from .agents import EnzymeKineticsCoordinator
+"""Compatibility application factory for the maintained FastAPI service.
 
-coordinator = EnzymeKineticsCoordinator()
+Install with `pip install ".[api]"` before calling `create_app`.
+"""
 
 
 def create_app():
-    try:
-        from fastapi import FastAPI
-        from pydantic import BaseModel
-
-        app = FastAPI(
-            title="EnzymeKinetics Sentinel: Michaelis-Menten, Lineweaver-Burk & Ki Inhibition Agent",
-            description="Fits non-linear Vmax and Km, constructs Lineweaver-Burk, Eadie-Hofstee, and Hanes-Woolf plots, and classifies competitive vs non-competitive inhibitors.",
-            version="2.0.0-FRONTIER",
-        )
-
-        class TaskRequest(BaseModel):
-            task_id: str = "TASK-2026-001"
-            target_identifier: str = "TARGET-BIO-KEY"
-            primary_metric: float = 28.5
-            secondary_metric: float = 14.2
-            status_descriptor: str = "DISCORDANT_ANOMALY"
-            is_critical_flag: bool = True
-            attributes: Dict[str, Any] = {}
-
-        class ChatRequest(BaseModel):
-            query: str
-
-        @app.get("/health")
-        def health():
-            return {"status": "HEALTHY", "system": "enzyme-kinetics-michaelis-menten", "domain": "Computational Chemistry & AI Drug Discovery", "version": "2.0.0-FRONTIER"}
-
-        @app.post("/api/audit")
-        def api_audit(req: TaskRequest):
-            payload = FrontierPayload(
-                task_id=req.task_id,
-                target_identifier=req.target_identifier,
-                primary_metric=req.primary_metric,
-                secondary_metric=req.secondary_metric,
-                status_descriptor=req.status_descriptor,
-                is_critical_flag=req.is_critical_flag,
-                attributes=req.attributes,
-            )
-            return coordinator.process(payload)
-
-        @app.post("/api/chat")
-        def api_chat(req: ChatRequest):
-            return {"response": coordinator.query_supervisory_chat(req.query)}
-
-        return app
-    except ImportError:
-        return None
+    """Return the canonical FastAPI application used by the container."""
+    from agents.api import app
+    return app

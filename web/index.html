@@ -1,236 +1,74 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enzyme Kinetics Michaelis Menten — Operations Console</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #090d16;
-            --card: #111827;
-            --border: #1f293d;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.25);
-            --text: #f3f4f6;
-            --text-muted: #9ca3af;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --success: #10b981;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            padding: 2rem;
-            min-height: 100vh;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .header-title h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
-        .header-title p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem; }
-        .badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: var(--accent-glow);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 1.5rem;
-        }
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-        .card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; }
-        input, select, textarea {
-            width: 100%;
-            padding: 0.65rem 0.9rem;
-            background: #0d1322;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: #fff;
-            font-family: inherit;
-            font-size: 0.9rem;
-        }
-        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-        .btn {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 0.7rem 1.4rem;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-        }
-        .btn:hover { background: #2563eb; }
-        .terminal {
-            background: #060911;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: #10b981;
-            height: 380px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        .metrics-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .metric-box {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-        }
-        .metric-val { font-size: 1.4rem; font-weight: 700; color: #fff; margin-top: 0.25rem; }
-        .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Local browser tool for Michaelis–Menten nonlinear fitting and enzyme inhibition calculations.">
+<title>Enzyme Kinetics | Michaelis–Menten</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#151f32;--line:#31415a;--muted:#b4bfd0;--text:#f5f8fd;--blue:#6cc4ff;--green:#5de0b5;--danger:#ff9b9b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1230px;margin:0 auto;padding:24px}header{margin-bottom:20px}h1{font-size:clamp(1.6rem,3vw,2.3rem);margin:0 0 5px}h2{font-size:1.13rem;margin:0 0 15px}h3{font-size:1rem;margin:0 0 8px}p{margin:6px 0 12px}.subtle{color:var(--muted)}.top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.chip{font-size:.8rem;color:var(--green);border:1px solid var(--green);padding:4px 10px;border-radius:18px}.layout{display:grid;grid-template-columns:minmax(300px,.85fr) minmax(420px,1.3fr);gap:16px}.panel{padding:21px;background:var(--panel);border:1px solid var(--line);border-radius:12px;min-width:0}.inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field{min-width:0}label{display:block;font-weight:600;font-size:.87rem;margin-bottom:5px}input,textarea,select{width:100%;background:#0b1425;color:var(--text);border:1px solid #536783;border-radius:7px;font:inherit;padding:9px 11px}textarea{min-height:178px;resize:vertical;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}input[type=file]{font-size:.84rem;padding:8px}.controls{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}button{background:var(--blue);color:#061321;border:0;border-radius:7px;padding:9px 15px;font:600 .9rem system-ui;cursor:pointer}button.secondary{background:#26374e;color:var(--text);border:1px solid #526885}button:disabled{cursor:not-allowed;opacity:.55}.error{min-height:24px;color:var(--danger);margin-top:10px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:12px}.stat{padding:10px;border:1px solid var(--line);border-radius:7px}.stat small{display:block;color:var(--muted)}.stat strong{display:block;font-size:1.3rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.graph{width:100%;height:auto;background:#0b1425;border-radius:8px;border:1px solid var(--line)}.graph text{fill:var(--muted);font:13px system-ui}.graph .gridline{stroke:#2c3b53;stroke-width:1}.graph .fitline{fill:none;stroke:var(--blue);stroke-width:3}.graph .point{fill:var(--green);stroke:#07221b;stroke-width:1}.legend{font-size:.85rem;color:var(--muted);margin:6px 0 12px}.swatch{display:inline-block;width:12px;height:3px;background:var(--blue);vertical-align:middle;margin:0 5px 0 13px}.swatch.point{background:var(--green)}.tablewrap{max-height:225px;overflow:auto;border:1px solid var(--line);border-radius:6px}table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}th,td{text-align:right;border-bottom:1px solid #2c3b53;padding:7px 11px;font-size:.85rem}th{position:sticky;top:0;background:#1d2a40}th:first-child,td:first-child{text-align:left}.lower{margin-top:16px}.note{color:var(--muted);font-size:.85rem}footer{margin:22px 0;color:var(--muted);font-size:.85rem}@media(max-width:850px){main{padding:14px}.layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}@media(max-width:440px){.panel{padding:14px}.inputs{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
 </head>
-<body>
-
-    <div class="header">
-        <div class="header-title">
-            <h1>Enzyme Kinetics Michaelis Menten</h1>
-            <p>Domain: Clinical & Cryptographic AI | Standard: CAP / CLSI / NIST Standards | LabMind-Atlas Architecture</p>
-        </div>
-        <div>
-            <span class="badge">Air-Gapped Active</span>
-            <span class="badge" style="background: rgba(16,185,129,0.2); color: #10b981; border-color: #10b981;">Zero-PHI Guard Active</span>
-        </div>
-    </div>
-
-    <div class="metrics-bar">
-        <div class="metric-box">
-            <div class="metric-label">System Status</div>
-            <div class="metric-val" style="color: var(--success);" id="m-status">OPTIMAL</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Tasks Processed</div>
-            <div class="metric-val" id="m-tasks">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">Audit Blocks Signed</div>
-            <div class="metric-val" id="m-audit">142</div>
-        </div>
-        <div class="metric-box">
-            <div class="metric-label">PHI Interceptions</div>
-            <div class="metric-val" style="color: var(--accent);" id="m-phi">0</div>
-        </div>
-    </div>
-
-    <div class="grid">
-        <div class="card">
-            <h2>⚙️ Dispatch Distributed Component Audit</h2>
-            <div class="form-group">
-                <label>Task / Sample ID</label>
-                <input type="text" id="task_id" value="TASK-2026-LIVE-01">
-            </div>
-            <div class="form-group">
-                <label>Target Identifier</label>
-                <input type="text" id="target_id" value="SPECIMEN-ALPHA-77">
-            </div>
-            <div class="form-group">
-                <label>Primary Measurement / Value</label>
-                <input type="number" id="primary_metric" value="29.4" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Secondary Metric / Kinetic Index</label>
-                <input type="number" id="secondary_metric" value="14.8" step="0.1">
-            </div>
-            <div class="form-group">
-                <label>Status / Phenotype Descriptor</label>
-                <input type="text" id="status_descriptor" value="DISCORDANT_ANOMALY">
-            </div>
-            <div class="form-group">
-                <label><input type="checkbox" id="is_critical" checked> Trigger Emergency / Critical Flag</label>
-            </div>
-            <button class="btn" onclick="runAudit()">Execute Distributed Component Audit</button>
-        </div>
-
-        <div class="card">
-            <h2>📊 Real-Time Consensus Dossier & Audit Log</h2>
-            <div class="terminal" id="outputConsole">// Enzyme Kinetics Michaelis Menten Operations Console Ready
-// Connection established with Air-Gapped Supervisor
-// Cryptographic HMAC-SHA256 audit ledger loaded.
-// Ready for live task payload dispatch...</div>
-        </div>
-    </div>
-
-    <script>
-        async function runAudit() {
-            const consoleEl = document.getElementById('outputConsole');
-            consoleEl.innerText = "// Dispatching task across specialized workers...
-// Invoking InvariantQCWorker, SafetyEscalationWorker, ProtocolWorker...";
-
-            const payload = {
-                task_id: document.getElementById('task_id').value,
-                target_identifier: document.getElementById('target_id').value,
-                primary_metric: parseFloat(document.getElementById('primary_metric').value),
-                secondary_metric: parseFloat(document.getElementById('secondary_metric').value),
-                status_descriptor: document.getElementById('status_descriptor').value,
-                is_critical_flag: document.getElementById('is_critical').checked
-            };
-
-            try {
-                const res = await fetch('/api/audit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                consoleEl.innerText = JSON.stringify(data, null, 2);
-                document.getElementById('m-tasks').innerText = parseInt(document.getElementById('m-tasks').innerText) + 1;
-                document.getElementById('m-audit').innerText = parseInt(document.getElementById('m-audit').innerText) + 1;
-            } catch (err) {
-                consoleEl.innerText = "// Offline / Simulation Output:\n" + JSON.stringify({
-                    dossier_id: "DOSSIER-SIM-" + Math.floor(Math.random()*10000),
-                    system: "enzyme-kinetics-michaelis-menten",
-                    domain: "Clinical & Cryptographic AI",
-                    task_id: payload.task_id,
-                    overall_urgency: payload.is_critical_flag ? "CRITICAL_STAT_PANIC" : "ELEVATED_RISK",
-                    integrity_status: "DISCORDANT_ANOMALY",
-                    alerts: [
-                        { worker: "InvariantQCWorker", alert: "Primary metric exceeds upper reference bound" },
-                        { worker: "SafetyEscalationWorker", alert: "Critical emergency interlock flag active" }
-                    ],
-                    audit_hash: "HMAC_SHA256_e83f9a72b941d6c381f9"
-                }, null, 2);
-            }
-        }
-    </script>
-</body>
-</html>
+<body><main>
+<header class="top"><div><h1>Enzyme Kinetics</h1><p class="subtle">Michaelis–Menten fitting and inhibition modeling</p></div><span class="chip">Local browser calculations · No upload</span></header>
+<div class="layout">
+<section class="panel" aria-labelledby="input-heading">
+<h2 id="input-heading">Initial-rate observations</h2>
+<p class="note">Enter paired substrate concentrations and initial velocities in CSV format. Use consistent units; at least three distinct positive concentrations are required.</p>
+<label for="data">CSV data (concentration, velocity)</label>
+<textarea id="data" spellcheck="false">concentration,velocity
+1,9.1
+2,16.7
+5,33.3
+10,50.0
+20,66.7
+50,83.3
+100,90.9</textarea>
+<div class="field"><label for="file">Or import CSV file (max 1 MB)</label><input id="file" type="file" accept=".csv,text/csv"></div>
+<div class="controls"><button id="fit" type="button">Fit data</button><button id="download" class="secondary" type="button" disabled>Export fitted CSV</button></div>
+<div id="error" class="error" role="alert" aria-live="polite"></div>
+<div class="lower"><h2>Inhibition calculations</h2><div class="inputs">
+<div class="field"><label for="type">Mechanism</label><select id="type"><option value="competitive">Competitive</option><option value="uncompetitive">Uncompetitive</option><option value="noncompetitive">Pure noncompetitive</option><option value="mixed">Mixed</option></select></div>
+<div class="field"><label for="substrate">[S]</label><input id="substrate" type="number" min="0" step="any" value="10"></div>
+<div class="field"><label for="inhibitor">[I]</label><input id="inhibitor" type="number" min="0" step="any" value="5"></div>
+<div class="field"><label for="ki">Ki</label><input id="ki" type="number" min="0" step="any" value="5"></div>
+<div class="field"><label for="kiprime">Ki′ (mixed only)</label><input id="kiprime" type="number" min="0" step="any" value="10" disabled></div>
+<div class="field"><label for="enzyme">[E]total (optional)</label><input id="enzyme" type="number" min="0" step="any" placeholder="For kcat"></div>
+</div><div class="controls"><button id="calculate" type="button" class="secondary">Calculate inhibition</button></div><p id="inhibition-result" aria-live="polite" class="note">Fit the example to calculate inhibition.</p></div>
+</section>
+<section class="panel" aria-labelledby="result-heading">
+<h2 id="result-heading">Fit results</h2>
+<div class="stats" aria-live="polite"><div class="stat"><small>Vmax</small><strong id="vmax">—</strong></div><div class="stat"><small>Km</small><strong id="km">—</strong></div><div class="stat"><small>R²</small><strong id="r2">—</strong></div><div class="stat"><small>Observations</small><strong id="count">—</strong></div></div>
+<svg id="plot" class="graph" viewBox="0 0 740 385" role="img" aria-label="Observed rates as points and fitted Michaelis–Menten curve"><title>Velocity versus substrate concentration</title></svg>
+<div class="legend"><span class="swatch point"></span>Measured <span class="swatch"></span>Nonlinear least-squares fit</div>
+<h3>Observed and predicted velocities</h3><div class="tablewrap"><table><thead><tr><th>[S]</th><th>Observed v</th><th>Predicted v</th><th>Residual</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p class="note">Unweighted nonlinear least squares in velocity space; R² is computed from the measured initial velocities. Inhibitor IC50 expressions assume ideal reversible mechanisms and are not a substitute for experimental dose–response fitting.</p>
+</section></div>
+<footer>All input, calculation and export operations run in this browser tab. No data is sent to a server. The Python CLI/API remain separate components of this repository.</footer>
+</main>
+<script type="module">
+import {velocity, parseKineticsCSV, fitMichaelisMenten, inhibitionVelocity, ic50} from './kinetics.mjs';
+const $ = id => document.getElementById(id);
+let current = null;
+const fmt = value => Number.isFinite(value) ? Number(value.toPrecision(5)).toString() : '—';
+const num = id => { const el = $(id); if (el.value.trim() === '') throw new Error('Enter ' + id + '.'); const value = Number(el.value); if (!Number.isFinite(value)) throw new Error('Invalid ' + id + '.'); return value; };
+function svgEl(name, attrs, label) { const el = document.createElementNS('http://www.w3.org/2000/svg',name); for (const [key,value] of Object.entries(attrs)) el.setAttribute(key,String(value)); if (label !== undefined) el.textContent=label; return el; }
+function draw(rows, fit) {
+  const svg = $('plot'); while (svg.lastChild) svg.removeChild(svg.lastChild);
+  const L=70,R=715,T=20,B=325,w=R-L,h=B-T,maxS=Math.max(...rows.map(r=>r.s))*1.08,maxV=Math.max(...rows.map(r=>r.v),fit.vmax)*1.12;
+  const x=s=>L+w*s/maxS, y=v=>B-h*v/maxV;
+  for(let i=0;i<=5;i++){const xv=maxS*i/5,yv=maxV*i/5;svg.appendChild(svgEl('line',{x1:x(xv),y1:T,x2:x(xv),y2:B,class:'gridline'}));svg.appendChild(svgEl('line',{x1:L,y1:y(yv),x2:R,y2:y(yv),class:'gridline'}));svg.appendChild(svgEl('text',{x:x(xv),y:B+22,'text-anchor':'middle'},fmt(xv)));svg.appendChild(svgEl('text',{x:L-12,y:y(yv)+5,'text-anchor':'end'},fmt(yv)));}
+  let d='';for(let i=0;i<=250;i++){const s=maxS*i/250;d+=(i===0?'M':'L')+x(s).toFixed(2)+' '+y(velocity(s,fit.vmax,fit.km)).toFixed(2)+' ';}
+  svg.appendChild(svgEl('path',{d,class:'fitline'}));for(const row of rows)svg.appendChild(svgEl('circle',{cx:x(row.s),cy:y(row.v),r:4.5,class:'point'}));
+  svg.appendChild(svgEl('text',{x:(L+R)/2,y:373,'text-anchor':'middle'},'Substrate concentration [S]'));
+  svg.appendChild(svgEl('text',{x:L,y:14},'Velocity v'));
+}
+function runFit(){try{$('error').textContent='';const rows=parseKineticsCSV($('data').value);const fit=fitMichaelisMenten(rows);current={rows,fit};$('vmax').textContent=fmt(fit.vmax);$('km').textContent=fmt(fit.km);$('r2').textContent=fmt(fit.rSquared);$('count').textContent=rows.length;$('download').disabled=false;draw(rows,fit);const tbody=$('rows');tbody.replaceChildren();rows.forEach((row,i)=>{const tr=document.createElement('tr');[row.s,row.v,fit.predictions[i],row.v-fit.predictions[i]].forEach(value=>{const td=document.createElement('td');td.textContent=fmt(value);tr.appendChild(td)});tbody.appendChild(tr);});runInhibition();}catch(e){current=null;$('download').disabled=true;$('error').textContent=e.message;}}
+function runInhibition(){try{if(!current)throw new Error('Fit data first.');const {fit}=current,type=$('type').value,s=num('substrate'),inhibitor=num('inhibitor'),ki=num('ki');const kp=type==='mixed'?num('kiprime'):ki;const v=inhibitionVelocity(type,s,fit.vmax,fit.km,inhibitor,ki,kp),base=velocity(s,fit.vmax,fit.km);let result='Predicted v = '+fmt(v)+'; inhibition = '+fmt(100*(1-v/base))+'%';if(type!=='mixed')result+='; IC50 = '+fmt(ic50(type,fit.km,s,ki));if($('enzyme').value.trim()){const enzyme=num('enzyme');if(enzyme<=0)throw new Error('Enzyme concentration must be positive.');result+='; kcat = '+fmt(fit.vmax/enzyme)+'; kcat/Km = '+fmt(fit.vmax/enzyme/fit.km);} $('inhibition-result').textContent=result;}catch(e){$('inhibition-result').textContent=e.message;}}
+$('fit').addEventListener('click',runFit);$('calculate').addEventListener('click',runInhibition);$('type').addEventListener('change',()=>{$('kiprime').disabled=$('type').value!=='mixed';runInhibition();});
+$('file').addEventListener('change',async event=>{const file=event.target.files?.[0];if(!file)return;if(file.size>1_000_000){$('error').textContent='File is larger than 1 MB.';return;}try{$('data').value=await file.text();runFit();}catch(e){$('error').textContent='Could not read CSV: '+e.message;}});
+$('download').addEventListener('click',()=>{if(!current)return;const {rows,fit}=current;const csv='concentration,velocity,predicted_velocity,residual\n'+rows.map((row,i)=>[row.s,row.v,fit.predictions[i],row.v-fit.predictions[i]].join(',')).join('\n')+'\n';const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='enzyme-kinetics-fit.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+runFit();
+</script>
+</body></html>
