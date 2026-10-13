@@ -1,7 +1,7 @@
 """
 Enzyme Kinetics: Michaelis-Menten, linearization methods, inhibition models, IC50.
 """
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 from .engine import (
     KineticParameters,
