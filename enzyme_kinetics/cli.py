@@ -4,7 +4,6 @@ CLI module for Enzyme Kinetics.
 import argparse
 import csv
 import json
-import math
 import sys
 from typing import List
 
