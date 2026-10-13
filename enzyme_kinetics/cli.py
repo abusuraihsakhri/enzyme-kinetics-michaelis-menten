@@ -4,6 +4,7 @@ CLI module for Enzyme Kinetics.
 import argparse
 import csv
 import json
+import math
 import sys
 from typing import List
 
@@ -39,7 +40,7 @@ except ImportError:
 
 def _load_data(filepath: str):
     """Load substrate concentrations and velocities from CSV or JSON."""
-    if filepath.endswith('.json'):
+    if filepath.lower().endswith('.json'):
         with open(filepath, 'r') as f:
             data = json.load(f)
         if isinstance(data, dict):
@@ -50,9 +51,16 @@ def _load_data(filepath: str):
         velocities = []
         with open(filepath, 'r', newline='') as f:
             reader = csv.DictReader(f)
+            fields = {field.strip().lower(): field for field in (reader.fieldnames or [])}
+            s_field = fields.get("concentration", fields.get("s"))
+            v_field = fields.get("velocity", fields.get("v"))
+            if not s_field or not v_field:
+                raise ValueError("CSV requires concentration and velocity columns")
             for row in reader:
-                concentrations.append(float(row.get('concentration', row.get('s', 0))))
-                velocities.append(float(row.get('velocity', row.get('v', 0))))
+                if not row.get(s_field) or not row.get(v_field):
+                    raise ValueError("CSV contains a missing concentration or velocity")
+                concentrations.append(float(row[s_field]))
+                velocities.append(float(row[v_field]))
         return concentrations, velocities
 
 
@@ -60,7 +68,7 @@ def cmd_fit(args):
     """Fit Michaelis-Menten parameters."""
     concentrations, velocities = _load_data(args.input)
     
-    if args.enzyme_conc:
+    if args.enzyme_conc is not None:
         params = fit_with_kcat(concentrations, velocities, args.enzyme_conc)
     else:
         params = fit_michaelis_menten(concentrations, velocities)
@@ -68,7 +76,7 @@ def cmd_fit(args):
     result = {
         'vmax': round(params.vmax, 6),
         'km': round(params.km, 6),
-        'r_squared': round(params.r_squared, 6) if params.r_squared else None,
+        'r_squared': round(params.r_squared, 6) if params.r_squared is not None else None,
     }
     if params.kcat is not None:
         result['kcat'] = round(params.kcat, 6)
@@ -82,7 +90,7 @@ def cmd_fit(args):
         print("=" * 40)
         print(f"  Vmax:    {params.vmax:.6f}")
         print(f"  Km:      {params.km:.6f}")
-        if params.r_squared:
+        if params.r_squared is not None:
             print(f"  R²:      {params.r_squared:.6f}")
         if params.kcat is not None:
             print(f"  kcat:    {params.kcat:.6f}")
@@ -367,7 +375,11 @@ def main(argv=None):
         'verify-audit': cmd_verify_audit,
     }
     
-    return commands[args.command](args)
+    try:
+        return commands[args.command](args)
+    except (ValueError, KeyError, TypeError, OSError, json.JSONDecodeError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == '__main__':
