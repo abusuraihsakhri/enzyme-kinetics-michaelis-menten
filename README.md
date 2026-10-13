@@ -1,199 +1,72 @@
-# Enzyme Kinetics Michaelis Menten
+# Enzyme Kinetics — Michaelis–Menten
 
-> **Domain:** Computational Biology & AI Drug Discovery  
-> **Reference Guidelines & Standards:** `wwPDB, IUPAC & CLSI Computational Guidelines`
+A Python enzyme-kinetics library and CLI with a dependency-free browser workbench for initial-rate analysis.
 
-<div align="center">
+## Browser workbench
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
-![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
-![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
+The static app in [web/](web/) fits **Vmax** and **Km** by unweighted nonlinear least squares on the original velocity observations. It displays measured points and the fitted curve, R², predicted rates and residuals. It also calculates velocity under competitive, uncompetitive, pure noncompetitive and mixed inhibition, plus ideal-model IC50 relationships where defined. Results can be exported as CSV.
 
-</div>
+Enter a CSV file with `concentration,velocity` columns or use the bundled example. At least three distinct positive substrate concentrations and some nonzero measured rates are required. Keep concentration and velocity units consistent. An optional enzyme concentration supports `kcat = Vmax/[E]` and `kcat/Km`.
 
----
-
-## 📖 What It Does
-
-**Enzyme Kinetics Michaelis Menten** is an advanced analytical and computational platform implementing:
-
-- **Non-linear Michaelis-Menten Vmax/Km fitter** with Lineweaver-Burk, Eadie-Hofstee, and Hanes-Woolf linearization methods
-- **Inhibitor classification** (competitive, uncompetitive, non-competitive, mixed)
-- **IC50 calculation** using the Cheng-Prusoff equation
-- **Substrate inhibition analysis** with optimal concentration determination
-- **Enterprise security features** including Zero-PHI outbound guard and HMAC-SHA256 audit trail
-
----
-
-## ⚙️ Key Capabilities & Algorithmic Modules
-
-- **Deterministic Calculation Engine**: Strict compliance with standard reference formulations and thresholds.
-- **Risk & Urgency Classification**: Multi-tier categorization with automated clinical/operational action recommendations.
-- **Validation & Guardrails**: Rigorous input bounds checking and anomaly detection.
-- **Multi-Agent Supervisor**: Distributed worker architecture for quality control, safety escalation, and protocol conformance.
-
----
-
-## 💻 Installation
+To run locally, serve the static directory (ES modules normally require HTTP rather than `file://`):
 
 ```bash
-# Clone the repository
+python -m http.server 8001 --directory web
+# Open http://localhost:8001
+```
+
+A [GitHub Pages deployment workflow](.github/workflows/pages.yml) publishes `web/` from `master`. The repository must have **Settings → Pages → Source: GitHub Actions** enabled. The live link should only be published here once deployment and the application have been verified.
+
+## Python installation and CLI
+
+Python 3.10+ is required.
+
+```bash
 git clone https://github.com/abusuraihsakhri/enzyme-kinetics-michaelis-menten.git
 cd enzyme-kinetics-michaelis-menten
-
-# Install dependencies
-pip install -e .
-
-# Or install with optional dependencies
-pip install fastapi uvicorn pydantic pytest
-```
-
----
-
-## 💻 CLI Quickstart & Usage
-
-### 1. Fit Michaelis-Menten Parameters
-```bash
-python cli.py fit -i sample.csv
-python cli.py fit -i data.json --enzyme-conc 1.0 --json
-```
-
-### 2. Linearization Analysis
-```bash
-python cli.py linearize -i sample.csv --json
-```
-
-### 3. Inhibition Analysis
-```bash
+python -m pip install -e .
+python cli.py fit -i sample_kinetics.csv --json
+python cli.py linearize -i sample_kinetics.csv
 python cli.py inhibition --vmax 100 --km 10 --type competitive --inhibitor 5 --ki 2
-python cli.py inhibition --vmax 100 --km 10 --type mixed --inhibitor 5 --ki 2 --ki-prime 5
-```
-
-### 4. IC50 Calculation
-```bash
-python cli.py ic50 --vmax 100 --km 10 --substrate 5 --ki 2 --type competitive
-```
-
-### 5. Substrate Inhibition
-```bash
+python cli.py ic50 --vmax 100 --km 10 --substrate 5 --ki 2
 python cli.py substrate-inhibition --vmax 100 --km 10 --ki-substrate 100
 ```
 
-### 6. Supervisor Audit
-```bash
-python cli.py audit --task-id TASK-001 --primary-metric 25.5 --json
-```
+The original `sample.csv` contains *audit-task inputs*, not concentration/velocity pairs; `sample_kinetics.csv` is the appropriate example for fitting and linearizations. JSON input with `concentrations` and `velocities` arrays is also supported.
 
-### 7. Chat Assistant
-```bash
-python cli.py chat "Explain enzyme kinetics"
-```
+The core module implements Michaelis–Menten velocities, three reciprocal/linearized diagnostic methods (Lineweaver–Burk, Eadie–Hofstee, Hanes–Woolf), inhibition models, turnover number, catalytic efficiency, and substrate inhibition. Linearizations are **not used as the final nonlinear fit** because reciprocal transformations alter measurement-error weighting. No confidence intervals or automatic inhibition-mechanism classification are currently provided by the numerical engine.
 
-### 8. Verify Audit Trail
-```bash
-python cli.py verify-audit
-```
+## Optional audit API and container
 
-### Input Data Schema (for fit/linearize commands)
-
-| Field | Description | Requirement |
-|:------|:------------|:------------|
-| `concentration` | Substrate concentration [S] | Required |
-| `velocity` | Reaction velocity v | Required |
-
-CSV format:
-```csv
-concentration,velocity
-1.0,9.1
-2.0,16.7
-5.0,33.3
-10.0,50.0
-```
-
-JSON format:
-```json
-{
-  "concentrations": [1, 2, 5, 10, 20, 50, 100],
-  "velocities": [9.1, 16.7, 33.3, 50.0, 66.7, 83.3, 90.9]
-}
-```
-
----
-
-## 🛡️ Security & Enterprise Architecture
-
-* **Zero-PHI Outbound Interceptor:** Active regex inspection blocking SSNs, MRNs, phone numbers, emails, and patient identifiers.
-* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
-* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
-* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
-* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
-
-### Security Configuration
-
-Set the `AUDIT_SECRET_KEY` environment variable for production use:
-```bash
-export AUDIT_SECRET_KEY="your-secure-key-here"
-```
-
----
-
-## 🧪 Testing & Verification
-
-Run the automated test suite:
+The repository also retains a separate rule-based supervisor for synthetic audit tasks. Its fixed thresholds and enrichment heuristics are **not validated clinical decision rules or experimental enzyme-kinetics classifiers**.
 
 ```bash
-pytest -v
+python -m pip install -e ".[api]"
+uvicorn agents.api:app --host 127.0.0.1 --port 8000
+# API documentation: http://127.0.0.1:8000/docs
 ```
 
-Execute high-throughput batch simulation benchmarks:
+Endpoints include `/health`, `/metrics` (JSON), `/api/audit`, `/api/chat` (deterministic mock), and `/api/audit/logs`. The compatibility factory `enzyme_kinetics.server.create_app()` returns the same application.
+
+For Docker Compose, set a strong, private `AUDIT_SECRET_KEY` in the environment before running `docker compose up --build`. No signing key is committed to the current Compose configuration. Prior deployed keys must be rotated because earlier repository history contained an example signing key.
+
+## Privacy and limits
+
+The browser workbench performs calculations entirely on the client; file import and CSV export do not send data to a server. Optional FastAPI endpoints receive submitted audit payloads and keep an in-process audit trail. The identifier-screening regexes are only basic safeguards and **do not establish de-identification, HIPAA compliance, or clinical suitability**. Do not submit patient-identifiable information.
+
+The nonlinear fit assumes initial-rate measurements, an ordinary Michaelis–Menten mechanism and unweighted residuals. Confirm model adequacy and experimental assumptions before interpreting parameters. IC50 formulae represent ideal inhibition mechanisms and are not substitutes for fitting measured inhibitor dose–response curves.
+
+## Development and tests
 
 ```bash
-python simulator.py 1000
+python -m pip install -e ".[api,dev]"
+python -m pytest -q
+python -m compileall -q agents enzyme_kinetics
+node --test web/kinetics.test.mjs
 ```
 
----
+The GitHub Actions workflow tests Python 3.10–3.13, package installation, numerical regressions, CLI commands and browser calculation modules. The static workbench targets modern browsers supporting ECMAScript modules, SVG, File and Blob APIs.
 
-## 🐳 Container Deployment
+## License
 
-```bash
-docker build -t enzyme-kinetics-michaelis-menten .
-docker run -p 8000:8000 -e AUDIT_SECRET_KEY=your-key enzyme-kinetics-michaelis-menten
-```
-
-Or using Docker Compose:
-
-```bash
-docker-compose up -d
-```
-
----
-
-## 📁 Project Structure
-
-```
-enzyme-kinetics-michaelis-menten/
-├── agents/                  # Multi-agent supervisor system
-│   ├── api.py              # FastAPI REST endpoints
-│   ├── base.py             # Security, PHI guard, audit trail
-│   ├── models.py           # Pydantic data models
-│   ├── supervisor.py       # Master orchestrator
-│   ├── workers.py          # Specialized worker agents
-│   ├── llm_factory.py      # LLM provider factory
-│   ├── learning.py         # Bayesian calibration engine
-│   ├── metrics.py          # Prometheus metrics
-│   └── streamer.py         # WebSocket telemetry
-├── enzyme_kinetics/         # Core enzyme kinetics engine
-│   ├── engine.py           # Michaelis-Menten, linearization, inhibition
-│   ├── cli.py              # Command-line interface
-│   ├── models.py           # Data model exports
-│   └── server.py           # FastAPI app factory
-├── tests/                   # Test suite
-├── web/                     # Operations console (HTML)
-├── sample.csv               # Sample data
-├── simulator.py             # High-throughput simulation
-├── Dockerfile               # Container definition
-└── docker-compose.yml       # Compose configuration
-```
+[MIT](LICENSE).
