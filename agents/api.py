@@ -4,7 +4,7 @@ FastAPI REST API Server for Enzyme Kinetics Michaelis Menten.
 from typing import Dict, Any, List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from .base import AuditLogger, PHIGuard
+from .base import AuditLogger, PHIGuard, SecurityException
 from .models import SystemTaskPayload, ConsensusDossier
 from .supervisor import SystemSupervisor
 
@@ -13,7 +13,7 @@ supervisor = SystemSupervisor(model_provider="mock")
 app = FastAPI(
     title="Enzyme Kinetics Michaelis Menten API",
     description="Enterprise Distributed Component Platform (AI Drug Discovery, Structural Biology & Wet-Lab Robotics)",
-    version="3.0.0-ENTERPRISE",
+    version="3.0.1",
 )
 
 
@@ -46,8 +46,8 @@ def api_chat(req: ChatRequest):
     try:
         ans = supervisor.query_supervisory_chat(req.query)
         return {"response": ans}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except SecurityException:
+        raise HTTPException(status_code=400, detail="Query contains a disallowed identifier")
 
 
 @app.get("/api/audit/logs")
